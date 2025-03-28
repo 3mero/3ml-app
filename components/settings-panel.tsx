@@ -235,27 +235,29 @@ export default function SettingsPanel({
     localStorage.setItem("notes-bg-color", notesBgColor)
     localStorage.setItem("month-cards-bg-color", monthCardsBgColor)
 
-    // تطبيق ألوان الخلفية
+    // تطبيق ألوان الخلفية على المتغيرات CSS
     document.documentElement.style.setProperty("--main-bg-color", mainBgColor)
     document.documentElement.style.setProperty("--schedule-bg-color", scheduleBgColor)
     document.documentElement.style.setProperty("--settings-bg-color", settingsBgColor)
     document.documentElement.style.setProperty("--notes-bg-color", notesBgColor)
     document.documentElement.style.setProperty("--month-cards-bg-color", monthCardsBgColor)
 
-    // تطبيق ألوان الخلفية على العناصر مباشرة
-    document.getElementById("schedule-container")?.style.setProperty("background-color", mainBgColor)
-    document.querySelectorAll(".schedule-grid-container, .schedule-cards").forEach((el) => {
-      ;(el as HTMLElement).style.setProperty("background-color", scheduleBgColor)
-    })
-    document.querySelectorAll(".settings-panel").forEach((el) => {
-      ;(el as HTMLElement).style.setProperty("background-color", settingsBgColor)
-    })
-    document.querySelectorAll(".notes-popup, .comment-modal").forEach((el) => {
-      ;(el as HTMLElement).style.setProperty("background-color", notesBgColor)
-    })
-    document.querySelectorAll(".month-card").forEach((el) => {
-      ;(el as HTMLElement).style.setProperty("background-color", monthCardsBgColor)
-    })
+    // تطبيق ألوان الخلفية على العناصر مباشرة بتأخير صغير
+    setTimeout(() => {
+      document.getElementById("schedule-container")?.style.setProperty("background-color", mainBgColor)
+      document.querySelectorAll(".schedule-grid-container, .schedule-cards").forEach((el) => {
+        ;(el as HTMLElement).style.setProperty("background-color", scheduleBgColor)
+      })
+      document.querySelectorAll(".settings-panel").forEach((el) => {
+        ;(el as HTMLElement).style.setProperty("background-color", settingsBgColor)
+      })
+      document.querySelectorAll(".notes-popup, .comment-modal").forEach((el) => {
+        ;(el as HTMLElement).style.setProperty("background-color", notesBgColor)
+      })
+      document.querySelectorAll(".month-card").forEach((el) => {
+        ;(el as HTMLElement).style.setProperty("background-color", monthCardsBgColor)
+      })
+    }, 100)
 
     onClose()
   }
