@@ -85,12 +85,12 @@
 
 /* Apply custom background colors */
 body {
-  background-color: var(--main-bg-color);
+  background-color: var(--main-bg-color) !important;
 }
 
 .schedule-grid-container,
 .schedule-cards {
-  background-color: var(--schedule-bg-color);
+  background-color: var(--schedule-bg-color) !important;
 }
 
 .settings-panel {
