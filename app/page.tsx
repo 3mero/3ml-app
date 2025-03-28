@@ -74,6 +74,45 @@ export default function HomePage() {
   // Flag to prevent infinite updates
   const [isInitialized, setIsInitialized] = useState(false)
 
+  // أضف هذا الكود في بداية الدالة HomePage بعد تعريف المتغيرات مباشرة
+  // إضافة useEffect لتطبيق الألوان عند تحميل الصفحة
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // تأخير صغير لضمان تحميل العناصر في DOM
+      const applyColorsTimeout = setTimeout(() => {
+        const mainBgColor = localStorage.getItem("main-bg-color") || "#ffffff"
+        const scheduleBgColor = localStorage.getItem("schedule-bg-color") || "#ffffff"
+        const settingsBgColor = localStorage.getItem("settings-bg-color") || "#ffffff"
+        const notesBgColor = localStorage.getItem("notes-bg-color") || "#ffffff"
+        const monthCardsBgColor = localStorage.getItem("month-cards-bg-color") || "#ffffff"
+
+        // تطبيق ألوان الخلفية على المتغيرات CSS
+        document.documentElement.style.setProperty("--main-bg-color", mainBgColor)
+        document.documentElement.style.setProperty("--schedule-bg-color", scheduleBgColor)
+        document.documentElement.style.setProperty("--settings-bg-color", settingsBgColor)
+        document.documentElement.style.setProperty("--notes-bg-color", notesBgColor)
+        document.documentElement.style.setProperty("--month-cards-bg-color", monthCardsBgColor)
+
+        // تطبيق ألوان الخلفية على العناصر مباشرة
+        document.getElementById("schedule-container")?.style.setProperty("background-color", mainBgColor)
+        document.querySelectorAll(".schedule-grid-container, .schedule-cards").forEach((el) => {
+          ;(el as HTMLElement).style.setProperty("background-color", scheduleBgColor)
+        })
+        document.querySelectorAll(".settings-panel").forEach((el) => {
+          ;(el as HTMLElement).style.setProperty("background-color", settingsBgColor)
+        })
+        document.querySelectorAll(".notes-popup, .comment-modal").forEach((el) => {
+          ;(el as HTMLElement).style.setProperty("background-color", notesBgColor)
+        })
+        document.querySelectorAll(".month-card").forEach((el) => {
+          ;(el as HTMLElement).style.setProperty("background-color", monthCardsBgColor)
+        })
+      }, 500) // تأخير 500 مللي ثانية
+
+      return () => clearTimeout(applyColorsTimeout)
+    }
+  }, [])
+
   // Corregido: useEffect para evitar bucles infinitos
   useEffect(() => {
     if (typeof window !== "undefined" && !isInitialized) {
