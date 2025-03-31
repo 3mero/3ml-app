@@ -123,15 +123,14 @@ export function CommentForm() {
 
           <div>
             <Label htmlFor="comment-color">اللون</Label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center">
               <Input
                 id="comment-color"
                 type="color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="w-12 h-10 p-1"
+                className="w-full h-10 p-1 cursor-pointer"
               />
-              <Input value={color} onChange={(e) => setColor(e.target.value)} placeholder="#HEX" className="flex-1" />
             </div>
           </div>
 
