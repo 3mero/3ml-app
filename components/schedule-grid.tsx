@@ -585,18 +585,12 @@ export function ScheduleGrid({
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">اللون</label>
-                      <div className="flex gap-2">
+                      <div className="flex">
                         <input
                           type="color"
                           value={newCommentColor}
                           onChange={(e) => setNewCommentColor(e.target.value)}
-                          className="h-10 w-10 p-1 border rounded"
-                        />
-                        <input
-                          type="text"
-                          value={newCommentColor}
-                          onChange={(e) => setNewCommentColor(e.target.value)}
-                          className="flex-1 p-2 border rounded-md"
+                          className="h-10 w-full p-1 border rounded cursor-pointer"
                         />
                       </div>
                     </div>
