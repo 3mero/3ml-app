@@ -113,6 +113,49 @@ export default function HomePage() {
     }
   }, [])
 
+  // إضافة تحقق دوري لتحديث الجدول عند تغير الشهر
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // تخزين الشهر الحالي في localStorage
+      const currentMonth = new Date().getMonth()
+      const storedMonth = localStorage.getItem("current-month")
+
+      if (storedMonth && Number(storedMonth) !== currentMonth) {
+        console.log("تم تغيير الشهر من", storedMonth, "إلى", currentMonth)
+        // تحديث الشهر المخزن
+        localStorage.setItem("current-month", currentMonth.toString())
+
+        // إعادة تحميل الجدول الحالي لتحديث الأشهر المرئية
+        if (currentSchedule) {
+          const updatedSchedule = {
+            ...currentSchedule,
+            lastUpdated: new Date().toISOString(), // إضافة طابع زمني للتحديث
+          }
+          saveSchedule(updatedSchedule)
+        }
+      } else if (!storedMonth) {
+        // تخزين الشهر الحالي إذا لم يكن موجودًا
+        localStorage.setItem("current-month", currentMonth.toString())
+      }
+
+      // إعداد فحص دوري للتحقق من تغير الشهر (مرة واحدة يوميًا)
+      const checkMonthInterval = setInterval(() => {
+        const newMonth = new Date().getMonth()
+        const storedMonth = localStorage.getItem("current-month")
+
+        if (storedMonth && Number(storedMonth) !== newMonth) {
+          console.log("تم اكتشاف تغيير الشهر في الفحص الدوري")
+          localStorage.setItem("current-month", newMonth.toString())
+
+          // إعادة تحميل الصفحة لتحديث الجدول
+          window.location.reload()
+        }
+      }, 86400000) // فحص مرة واحدة يوميًا (24 ساعة)
+
+      return () => clearInterval(checkMonthInterval)
+    }
+  }, [currentSchedule, saveSchedule])
+
   // Corregido: useEffect para evitar bucles infinitos
   useEffect(() => {
     if (typeof window !== "undefined" && !isInitialized) {
