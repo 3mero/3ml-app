@@ -89,22 +89,84 @@ export function ScheduleGrid({
   // Initialize visible months
   useEffect(() => {
     if (propMonths && propMonths > 0) {
-      const startDateObj = propStartDate || new Date()
       const today = new Date()
-      const allMonths = Array.from({ length: propMonths }, (_, i) => addMonths(new Date(startDateObj), i))
+      const currentMonth = today.getMonth()
+      const currentYear = today.getFullYear()
 
-      // Find the index of the current month
-      let currentIdx = 0
-      allMonths.forEach((month, index) => {
-        if (isSameMonth(month, today)) {
-          currentIdx = index
-        }
+      // إنشاء مصفوفة من الأشهر بدءًا من الشهر الحالي
+      const allMonths = Array.from({ length: propMonths }, (_, i) => {
+        const newDate = new Date(currentYear, currentMonth)
+        newDate.setMonth(newDate.getMonth() + i)
+        return newDate
       })
 
-      setCurrentMonthIndex(currentIdx)
+      setCurrentMonthIndex(0) // تعيين المؤشر إلى الشهر الحالي (أول عنصر في المصفوفة)
       setVisibleMonths(allMonths)
+
+      // تعيين التاريخ الحالي إلى الشهر الحالي
+      setCurrentDate(today)
     }
   }, [propStartDate, propMonths])
+
+  // إضافة useEffect جديد لتحديث الأشهر المرئية عند تغير الشهر الحالي
+  useEffect(() => {
+    // تحديث الأشهر المرئية عند تغير التاريخ الحالي
+    if (visibleMonths.length > 0) {
+      const today = new Date()
+      const currentMonth = today.getMonth()
+      const currentYear = today.getFullYear()
+
+      // التحقق مما إذا كان الشهر الحالي موجودًا في الأشهر المرئية
+      const currentMonthExists = visibleMonths.some(
+        (month) => month.getMonth() === currentMonth && month.getFullYear() === currentYear,
+      )
+
+      // إذا لم يكن الشهر الحالي موجودًا، قم بتحديث الأشهر المرئية
+      if (!currentMonthExists) {
+        console.log("تحديث الأشهر المرئية - الشهر الحالي غير موجود")
+
+        // إنشاء مجموعة جديدة من الأشهر بدءًا من الشهر الحالي
+        const newMonths = Array.from({ length: propMonths || 12 }, (_, i) => {
+          const newDate = new Date(currentYear, currentMonth)
+          newDate.setMonth(newDate.getMonth() + i)
+          return newDate
+        })
+
+        setVisibleMonths(newMonths)
+        setCurrentMonthIndex(0) // تعيين المؤشر إلى الشهر الحالي
+      }
+    }
+  }, [visibleMonths, propMonths])
+
+  // إضافة مستمع الحدث للاستجابة لتغير الشهر
+  useEffect(() => {
+    const handleMonthChange = () => {
+      console.log("تم استلام حدث تغيير الشهر")
+
+      const today = new Date()
+      const currentMonth = today.getMonth()
+      const currentYear = today.getFullYear()
+
+      // إنشاء مجموعة جديدة من الأشهر بدءًا من الشهر الحالي
+      const newMonths = Array.from({ length: propMonths || 12 }, (_, i) => {
+        const newDate = new Date(currentYear, currentMonth)
+        newDate.setMonth(newDate.getMonth() + i)
+        return newDate
+      })
+
+      setVisibleMonths(newMonths)
+      setCurrentMonthIndex(0) // تعيين المؤشر إلى الشهر الحالي
+      setCurrentDate(today)
+    }
+
+    // إضافة مستمع الحدث
+    window.addEventListener("month-changed", handleMonthChange)
+
+    // إزالة مستمع الحدث عند تفكيك المكون
+    return () => {
+      window.removeEventListener("month-changed", handleMonthChange)
+    }
+  }, [propMonths])
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
