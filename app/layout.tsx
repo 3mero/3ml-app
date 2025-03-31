@@ -95,7 +95,7 @@ export default function RootLayout({
       registerServiceWorker();
       checkLocalStorage();
       
-      // Verificar si hay datos guardados al cargar la página
+      // Verificar si hay datos guardados al cargar الصفحة
       if (typeof localStorage !== "undefined") {
         const hasSchedules = localStorage.getItem("work-schedule-storage");
         const currentScheduleId = localStorage.getItem("current-schedule-id");
@@ -144,6 +144,39 @@ export default function RootLayout({
 
       // تنفيذ الدالة
       applyStoredColors();
+
+      // إضافة كود للتحقق من تغير الشهر عند تحميل الصفحة
+      function checkMonthChange() {
+        try {
+          const currentMonth = new Date().getMonth();
+          const storedMonth = localStorage.getItem("current-month");
+          
+          if (storedMonth && Number(storedMonth) !== currentMonth) {
+            console.log("تم اكتشاف تغيير الشهر عند تحميل الصفحة");
+            localStorage.setItem("current-month", currentMonth.toString());
+            
+            // إضافة علامة لإعادة تحميل الجدول
+            localStorage.setItem("reload-schedule", "true");
+          }
+          
+          // التحقق من علامة إعادة التحميل
+          const reloadSchedule = localStorage.getItem("reload-schedule");
+          if (reloadSchedule === "true") {
+            localStorage.removeItem("reload-schedule");
+            
+            // إعادة تحميل الجدول بعد تأخير قصير
+            setTimeout(function() {
+              // إرسال حدث مخصص لتحديث الجدول
+              window.dispatchEvent(new CustomEvent("month-changed"));
+            }, 1000);
+          }
+        } catch (e) {
+          console.error("خطأ في التحقق من تغيير الشهر:", e);
+        }
+      }
+
+      // تنفيذ الدالة
+      checkMonthChange();
     `,
           }}
         />
