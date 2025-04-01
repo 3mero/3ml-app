@@ -9,7 +9,7 @@ import { useEmployeeStore } from "@/lib/store/employee-store"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Settings, Calendar, ChevronRight, X, Plus, ChevronLeft } from "lucide-react"
+import { Settings, Calendar, ChevronRight, X, Plus, ChevronLeft, WifiOff } from "lucide-react"
 import { formatDate, safeLocalStorage } from "@/lib/utils"
 import { v4 as uuidv4 } from "uuid"
 import { format } from "date-fns"
@@ -44,6 +44,7 @@ export default function HomePage() {
   const [showSettingsPanel, setShowSettingsPanel] = useState(false)
   const [activeSettingsTab, setActiveSettingsTab] = useState("general")
   const [showDatePicker, setShowDatePicker] = useState(false) // إضافة متغير للتحكم في إظهار التقويم
+  const [isOffline, setIsOffline] = useState(false) // إضافة حالة للتحقق من وضع عدم الاتصال
 
   // Add after other state declarations
   const [showEmployeeForm, setShowEmployeeForm] = useState(false)
@@ -73,6 +74,32 @@ export default function HomePage() {
 
   // Flag to prevent infinite updates
   const [isInitialized, setIsInitialized] = useState(false)
+
+  // إضافة مراقبة حالة الاتصال
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false)
+      console.log("متصل بالإنترنت")
+    }
+
+    const handleOffline = () => {
+      setIsOffline(true)
+      console.log("غير متصل بالإنترنت")
+    }
+
+    // تعيين الحالة الأولية
+    setIsOffline(!navigator.onLine)
+
+    // إضافة مستمعي الأحداث
+    window.addEventListener("online", handleOnline)
+    window.addEventListener("offline", handleOffline)
+
+    // إزالة مستمعي الأحداث عند تفكيك المكون
+    return () => {
+      window.removeEventListener("online", handleOnline)
+      window.removeEventListener("offline", handleOffline)
+    }
+  }, [])
 
   // أضف هذا الكود في بداية الدالة HomePage بعد تعريف المتغيرات مباشرة
   // إضافة useEffect لتطبيق الألوان عند تحميل الصفحة
@@ -156,50 +183,56 @@ export default function HomePage() {
     }
   }, [currentSchedule, saveSchedule])
 
-  // Corregido: useEffect para evitar bucles infinitos
+  // تحسين useEffect لتجنب الحلقات اللانهائية وضمان تحميل البيانات
   useEffect(() => {
     if (typeof window !== "undefined" && !isInitialized) {
-      // Marcar como inicializado para evitar múltiples ejecuciones
+      // وضع علامة كمهيأ لتجنب التنفيذات المتعددة
       setIsInitialized(true)
 
-      // Verificar si localStorage está disponible
+      // التحقق مما إذا كان localStorage متاحًا
       const isStorageAvailable = safeLocalStorage.isAvailable()
 
-      // Verificar si es la primera visita
+      // التحقق مما إذا كانت هذه هي الزيارة الأولى
       const isFirstVisit = !localStorage.getItem("schedule-visited")
 
       if (isFirstVisit && isStorageAvailable) {
         localStorage.setItem("schedule-visited", "true")
         setShowSetupWizard(true)
       } else {
-        // Asegurarse de que los datos se han cargado correctamente
-        // Si no hay horarios cargados, forzar la inicialización
-        if (!currentSchedule && savedSchedules.length === 0) {
-          console.log("No schedules loaded, reinitializing schedule store")
-          initializeSchedule()
+        // تهيئة المخزن لتحميل البيانات
+        console.log("بدء تهيئة مخزن الجداول...")
+        initializeSchedule()
 
-          // Intentar cargar el último horario guardado
-          setTimeout(() => {
+        // انتظار لحظة لتحميل البيانات
+        setTimeout(() => {
+          console.log("التحقق من الجداول المحفوظة:", savedSchedules.length)
+
+          // إذا لم يكن هناك جدول حالي ولكن هناك جداول محفوظة، تحميل الأول
+          if (!currentSchedule && savedSchedules && savedSchedules.length > 0) {
+            // محاولة تحميل آخر جدول محفوظ
             const lastScheduleId = localStorage.getItem("current-schedule-id")
-            if (lastScheduleId && savedSchedules.length > 0) {
+            console.log("معرف آخر جدول محفوظ:", lastScheduleId)
+
+            if (lastScheduleId) {
               const found = savedSchedules.find((s) => s.id === lastScheduleId)
               if (found) {
+                console.log("تم العثور على الجدول الأخير، جاري التحميل...")
                 loadScheduleFromHistory(lastScheduleId)
               } else if (savedSchedules.length > 0) {
-                // Si no se encuentra el último horario, cargar el más reciente
-                loadScheduleFromHistory(savedSchedules[savedSchedules.length - 1].id)
+                // إذا لم يتم العثور على آخر جدول، تحميل الأحدث
+                console.log("لم يتم العثور على الجدول الأخير، تحميل الجدول الأول...")
+                loadScheduleFromHistory(savedSchedules[0].id)
               }
+            } else if (savedSchedules.length > 0) {
+              // إذا لم يكن هناك معرف محفوظ ولكن هناك جداول، تحميل الأول
+              console.log("لا يوجد معرف جدول محفوظ، تحميل الجدول الأول...")
+              loadScheduleFromHistory(savedSchedules[0].id)
             }
-          }, 200) // Pequeño retraso para asegurar que los datos se han cargado
-        }
-
-        // Si hay un horario actual, pero no se ha cargado bien
-        if (!currentSchedule && savedSchedules.length > 0) {
-          loadScheduleFromHistory(savedSchedules[0].id)
-        }
+          }
+        }, 300)
       }
 
-      // Cargar el modo de visualización guardado
+      // تحميل وضع العرض المحفوظ
       const storedViewMode = localStorage.getItem("schedule-view-mode")
       if (storedViewMode) {
         setScheduleViewMode(storedViewMode)
@@ -384,10 +417,10 @@ export default function HomePage() {
     setCustomWorkDays(updatedWorkDays)
   }
 
-  // Actualizar valores de configuración cuando cambia el horario actual
+  // تحديث قيم الإعدادات عند تغيير الجدول الحالي
   useEffect(() => {
     if (currentSchedule) {
-      // Actualizar los valores de configuración basados en el horario actual
+      // تحديث قيم الإعدادات بناءً على الجدول الحالي
       try {
         const startDateObj = new Date(currentSchedule.startDate)
         if (!isNaN(startDateObj.getTime())) {
@@ -415,7 +448,7 @@ export default function HomePage() {
           }
         }
       } catch (error) {
-        console.error("Error updating settings from current schedule:", error)
+        console.error("خطأ في تحديث الإعدادات من الجدول الحالي:", error)
       }
     }
   }, [currentSchedule])
@@ -423,6 +456,14 @@ export default function HomePage() {
   return (
     <ThemeProvider attribute="class" defaultTheme="light">
       <main dir="rtl" className="min-h-screen bg-background p-4 md:p-8" id="schedule-container">
+        {/* مؤشر وضع عدم الاتصال */}
+        {isOffline && (
+          <div className="fixed top-0 left-0 right-0 bg-red-500 text-white text-center py-2 z-50 flex items-center justify-center">
+            <WifiOff className="h-4 w-4 mr-2" />
+            <span>أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا.</span>
+          </div>
+        )}
+
         {/* Setup Wizard */}
         {showSetupWizard && (
           <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
