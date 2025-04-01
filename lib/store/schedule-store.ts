@@ -13,17 +13,57 @@ export const useScheduleStore = create<ScheduleState>()(
       savedSchedules: [],
 
       initializeSchedule: () => {
-        // لا نقوم بإنشاء أي جداول افتراضية
-        // فقط نقوم بتهيئة المخزن بقائمة فارغة
-        set({
-          schedules: [],
-          currentSchedule: null,
-          savedSchedules: [],
-        })
+        try {
+          // محاولة استرجاع البيانات من localStorage أولاً
+          const storedSchedules = localStorage.getItem("work-schedule-storage")
+          if (storedSchedules) {
+            const parsedData = JSON.parse(storedSchedules)
+            if (parsedData.state && parsedData.state.savedSchedules && parsedData.state.savedSchedules.length > 0) {
+              console.log("Found stored schedules:", parsedData.state.savedSchedules.length)
+              set({
+                schedules: parsedData.state.savedSchedules,
+                currentSchedule: parsedData.state.currentSchedule || parsedData.state.savedSchedules[0],
+                savedSchedules: parsedData.state.savedSchedules,
+              })
+              return
+            }
+          }
 
-        // Guardar en la base de datos local que está vacía
-        if (db) {
-          db.clearAll()
+          // ثم نحاول استرجاع البيانات من قاعدة البيانات المحلية
+          if (db) {
+            const dbSchedules = db.getSchedules()
+            if (dbSchedules && dbSchedules.length > 0) {
+              console.log("Found DB schedules:", dbSchedules.length)
+
+              const lastScheduleId = localStorage.getItem("current-schedule-id")
+              const currentSchedule = lastScheduleId
+                ? dbSchedules.find((s) => s.id === lastScheduleId) || dbSchedules[0]
+                : dbSchedules[0]
+
+              set({
+                schedules: dbSchedules,
+                currentSchedule: currentSchedule,
+                savedSchedules: dbSchedules,
+              })
+              return
+            }
+          }
+
+          // إذا لم نعثر على بيانات، نضع قائمة فارغة
+          console.log("No schedules found, initializing empty store")
+          set({
+            schedules: [],
+            currentSchedule: null,
+            savedSchedules: [],
+          })
+        } catch (error) {
+          console.error("Error initializing schedule store:", error)
+          // في حالة حدوث خطأ، نضع قائمة فارغة
+          set({
+            schedules: [],
+            currentSchedule: null,
+            savedSchedules: [],
+          })
         }
       },
 
