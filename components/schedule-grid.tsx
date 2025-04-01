@@ -17,7 +17,6 @@ import {
 import { ar } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-// إضافة استيراد الأيقونات اللازمة
 import { ChevronRight, ChevronLeft, Pin, PinOff, MessageSquare, X, CheckCircle, Bell, Edit, Trash } from "lucide-react"
 import { useScheduleStore } from "@/lib/store/schedule-store"
 import { useShiftStore } from "@/lib/store/shift-store"
@@ -49,8 +48,6 @@ export function ScheduleGrid({
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0)
   const [selectedDay, setSelectedDay] = useState<{ date: Date; comments: Comment[] } | null>(null)
   const [showCommentModal, setShowCommentModal] = useState(false)
-  // تعديل دالة ScheduleGrid لدعم أنماط العرض المختلفة
-  // أضف هذا المتغير الجديد إلى قائمة المتغيرات في بداية الدالة
   const [viewMode, setViewMode] = useState(propViewMode || "cards") // "cards", "arrows", "all"
 
   const { currentSchedule, updateSchedule, togglePinDay, addComment, updateComment, deleteComment } = useScheduleStore()
@@ -61,7 +58,6 @@ export function ScheduleGrid({
   const [longPressedDate, setLongPressedDate] = useState<string | null>(null)
 
   // تعديل نافذة التعليقات لتتضمن نموذج إضافة/تعديل التعليقات مباشرة
-  // أضف هذه المتغيرات الجديدة بعد المتغيرات الحالية (حوالي السطر 25)
   const [newCommentText, setNewCommentText] = useState("")
   const [newCommentImportance, setNewCommentImportance] = useState<"low" | "medium" | "high">("medium")
   const [newCommentColor, setNewCommentColor] = useState("#3b82f6")
@@ -69,10 +65,10 @@ export function ScheduleGrid({
 
   // State variables for the add/edit comment form
   const [showAddCommentForm, setShowAddCommentForm] = useState(false)
-  // const [newCommentText, setNewCommentText] = useState("");
-  // const [newCommentImportance, setNewCommentImportance] = useState<"low" | "medium" | "high">("medium");
-  // const [newCommentColor, setNewCommentColor] = useState("#3b82f6");
   const [editingComment, setEditingComment] = useState<Comment | null>(null)
+
+  // إضافة متغير جديد لتتبع ما إذا كان يتم عرض الأشهر السابقة
+  const [showPastMonths, setShowPastMonths] = useState(false)
 
   // استخدام وضع العرض من الخارج إذا تم تمريره
   useEffect(() => {
@@ -94,19 +90,30 @@ export function ScheduleGrid({
       const currentYear = today.getFullYear()
 
       // إنشاء مصفوفة من الأشهر بدءًا من الشهر الحالي
-      const allMonths = Array.from({ length: propMonths }, (_, i) => {
-        const newDate = new Date(currentYear, currentMonth)
-        newDate.setMonth(newDate.getMonth() + i)
-        return newDate
-      })
+      let allMonths = []
 
-      setCurrentMonthIndex(0) // تعيين المؤشر إلى الشهر الحالي (أول عنصر في المصفوفة)
+      if (showPastMonths) {
+        // إضافة 3 أشهر سابقة إذا كان showPastMonths مفعلاً
+        for (let i = -3; i < propMonths; i++) {
+          const newDate = new Date(currentYear, currentMonth)
+          newDate.setMonth(newDate.getMonth() + i)
+          allMonths.push(newDate)
+        }
+        setCurrentMonthIndex(3) // تعيين المؤشر إلى الشهر الحالي (بعد 3 أشهر سابقة)
+      } else {
+        // فقط الأشهر الحالية والمستقبلية
+        allMonths = Array.from({ length: propMonths }, (_, i) => {
+          const newDate = new Date(currentYear, currentMonth)
+          newDate.setMonth(newDate.getMonth() + i)
+          return newDate
+        })
+        setCurrentMonthIndex(0) // تعيين المؤشر إلى الشهر الحالي (أول عنصر في المصفوفة)
+      }
+
       setVisibleMonths(allMonths)
-
-      // تعيين التاريخ الحالي إلى الشهر الحالي
       setCurrentDate(today)
     }
-  }, [propStartDate, propMonths])
+  }, [propStartDate, propMonths, showPastMonths])
 
   // إضافة useEffect جديد لتحديث الأشهر المرئية عند تغير الشهر الحالي
   useEffect(() => {
@@ -174,6 +181,17 @@ export function ScheduleGrid({
 
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1))
   const prevMonth = () => setCurrentDate(subMonths(currentDate, 1))
+
+  // تعديل دالة goToPreviousMonths للسماح بالانتقال للأشهر السابقة
+  const goToPreviousMonths = () => {
+    if (currentMonthIndex > 0) {
+      const newIndex = currentMonthIndex - 1
+      setCurrentMonthIndex(newIndex)
+    } else if (!showPastMonths) {
+      // تفعيل عرض الأشهر السابقة عند الضغط على السهم للخلف وعدم وجود أشهر سابقة
+      setShowPastMonths(true)
+    }
+  }
 
   const getShiftForDay = (dateStr: string) => {
     if (!currentSchedule || !currentSchedule.assignments) return null
@@ -313,17 +331,9 @@ export function ScheduleGrid({
     }
   }
 
-  // Navigate to previous months
-  const goToPreviousMonths = () => {
-    if (currentMonthIndex > 0) {
-      const newIndex = currentMonthIndex - 1
-      setCurrentMonthIndex(newIndex)
-    }
-  }
-
   // Navigate to next months
   const goToNextMonths = () => {
-    if (propMonths && currentMonthIndex < propMonths - 1) {
+    if (propMonths && currentMonthIndex < visibleMonths.length - 1) {
       const newIndex = currentMonthIndex + 1
       setCurrentMonthIndex(newIndex)
     }
@@ -332,31 +342,42 @@ export function ScheduleGrid({
   const today = new Date()
 
   // تعديل الدالة لتدعم أنماط العرض المختلفة
-  // تعديل في قسم العرض الرئيسي للجداول (حوالي السطر 300)
-  // استبدل الشرط الحالي بهذا الشرط المحسن
   if (visibleMonths.length > 0) {
     return (
       <div className="space-y-8 schedule-grid-container">
         {viewMode === "arrows" && (
-          <div className="flex justify-between items-center">
-            <Button variant="outline" size="icon" onClick={goToPreviousMonths} disabled={currentMonthIndex === 0}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+          <div className="flex flex-col space-y-2">
+            <div className="flex justify-between items-center">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={goToPreviousMonths}
+                disabled={currentMonthIndex === 0 && showPastMonths}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
 
-            <div className="text-center">
-              <h2 className="text-xl font-bold">
-                {visibleMonths.length > 0 && format(visibleMonths[currentMonthIndex], "MMMM yyyy", { locale: ar })}
-              </h2>
+              <div className="text-center">
+                <h2 className="text-xl font-bold">
+                  {visibleMonths.length > 0 && format(visibleMonths[currentMonthIndex], "MMMM yyyy", { locale: ar })}
+                </h2>
+              </div>
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={goToNextMonths}
+                disabled={propMonths ? currentMonthIndex >= visibleMonths.length - 1 : false}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
             </div>
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToNextMonths}
-              disabled={propMonths ? currentMonthIndex >= propMonths - 1 : false}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+            <div className="flex justify-center">
+              <Button variant="ghost" size="sm" onClick={() => setShowPastMonths(!showPastMonths)} className="text-xs">
+                {showPastMonths ? "إخفاء الأشهر السابقة" : "عرض الأشهر السابقة"}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -378,13 +399,16 @@ export function ScheduleGrid({
             const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
             const isCurrentMonth = isSameMonth(month, today)
             const firstDayOfMonth = monthStart.getDay()
+            // إضافة متغير isPastMonth في تعريف الأشهر
+            const isPastMonth = month < today && !isSameMonth(month, today)
 
             return (
               <div
                 key={monthKey}
                 className={cn(
                   "rounded-xl border shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 month-card",
-                  isCurrentMonth && "ring-2 ring-red-500", // تغيير من ring-primary إلى ring-red-500
+                  isCurrentMonth && "ring-2 ring-red-500",
+                  isPastMonth && "opacity-90", // إضافة شفافية للأشهر السابقة
                 )}
                 style={{
                   backgroundColor: currentSchedule?.monthColors?.[monthKey] || "#ffffff",
@@ -395,7 +419,6 @@ export function ScheduleGrid({
                     <div className="space-y-1">
                       <h3 className={cn("text-lg font-bold", isCurrentMonth && "text-red-500")}>
                         {" "}
-                        {/* تغيير من text-primary إلى text-red-500 */}
                         {format(month, "MMMM yyyy", { locale: ar })}
                       </h3>
                     </div>
@@ -404,6 +427,13 @@ export function ScheduleGrid({
                     </div>
                   </div>
                 </div>
+
+                {/* إضافة علامة "شهر منقضي" للأشهر السابقة */}
+                {isPastMonth && (
+                  <div className="absolute top-0 left-0 right-0 bg-gray-700/70 text-white text-center py-1 text-sm font-medium">
+                    شهر منقضي
+                  </div>
+                )}
 
                 <div className="p-4">
                   <div className="grid grid-cols-7 gap-1 mb-2">
@@ -534,7 +564,6 @@ export function ScheduleGrid({
           })}
         </div>
 
-        {/* استبدل كود نافذة التعليقات الحالية (حوالي السطر 400) بهذا الكود المحسن */}
         {/* Modal for showing day comments */}
         {showCommentModal && selectedDay && (
           <div
