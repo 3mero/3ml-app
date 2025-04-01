@@ -172,16 +172,30 @@ export default function HomePage() {
         localStorage.setItem("schedule-visited", "true")
         setShowSetupWizard(true)
       } else {
-        // Intentar cargar el último horario guardado
-        const lastScheduleId = localStorage.getItem("current-schedule-id")
-        if (lastScheduleId && savedSchedules.length > 0) {
-          const found = savedSchedules.find((s) => s.id === lastScheduleId)
-          if (found) {
-            loadScheduleFromHistory(lastScheduleId)
-          } else if (savedSchedules.length > 0) {
-            // Si no se encuentra el último horario, cargar el más reciente
-            loadScheduleFromHistory(savedSchedules[savedSchedules.length - 1].id)
-          }
+        // Asegurarse de que los datos se han cargado correctamente
+        // Si no hay horarios cargados, forzar la inicialización
+        if (!currentSchedule && savedSchedules.length === 0) {
+          console.log("No schedules loaded, reinitializing schedule store")
+          initializeSchedule()
+
+          // Intentar cargar el último horario guardado
+          setTimeout(() => {
+            const lastScheduleId = localStorage.getItem("current-schedule-id")
+            if (lastScheduleId && savedSchedules.length > 0) {
+              const found = savedSchedules.find((s) => s.id === lastScheduleId)
+              if (found) {
+                loadScheduleFromHistory(lastScheduleId)
+              } else if (savedSchedules.length > 0) {
+                // Si no se encuentra el último horario, cargar el más reciente
+                loadScheduleFromHistory(savedSchedules[savedSchedules.length - 1].id)
+              }
+            }
+          }, 200) // Pequeño retraso para asegurar que los datos se han cargado
+        }
+
+        // Si hay un horario actual, pero no se ha cargado bien
+        if (!currentSchedule && savedSchedules.length > 0) {
+          loadScheduleFromHistory(savedSchedules[0].id)
         }
       }
 
@@ -189,11 +203,6 @@ export default function HomePage() {
       const storedViewMode = localStorage.getItem("schedule-view-mode")
       if (storedViewMode) {
         setScheduleViewMode(storedViewMode)
-      }
-
-      // Solo inicializar si no hay horarios guardados
-      if (!savedSchedules || savedSchedules.length === 0) {
-        initializeSchedule()
       }
 
       // إذا كان هناك تاريخ محفوظ في localStorage، استخدمه، وإلا استخدم التاريخ الحالي
@@ -213,7 +222,7 @@ export default function HomePage() {
         setStartDate(new Date()) // استخدم التاريخ الحالي إذا لم يكن هناك تاريخ محفوظ
       }
     }
-  }, [isInitialized, initializeSchedule, savedSchedules, loadScheduleFromHistory])
+  }, [isInitialized, initializeSchedule, savedSchedules, loadScheduleFromHistory, currentSchedule])
 
   // إضافة مستمع الحدث لفتح نموذج إضافة موظف من الإعدادات
   useEffect(() => {
