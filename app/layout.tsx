@@ -24,6 +24,10 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#3b82f6" />
         <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="جداول العمل" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={cairo.className}>
         <ThemeProvider attribute="class" defaultTheme="light">
@@ -32,26 +36,26 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-      // Función para verificar y registrar el Service Worker
+      // دالة للتحقق وتسجيل Service Worker
       function registerServiceWorker() {
         if ("serviceWorker" in navigator) {
           window.addEventListener("load", function() {
             navigator.serviceWorker.register("/service-worker.js").then(
               function(registration) {
-                console.log("Service Worker registration successful with scope: ", registration.scope);
+                console.log("تم تسجيل Service Worker بنجاح مع النطاق: ", registration.scope);
                 
-                // Verificar si hay una nueva versión del Service Worker
+                // التحقق مما إذا كان هناك إصدار جديد من Service Worker
                 registration.addEventListener("updatefound", () => {
                   const newWorker = registration.installing;
                   
-                  // Cuando el nuevo Service Worker cambie de estado
+                  // عندما يتغير حالة Service Worker الجديد
                   newWorker.addEventListener("statechange", () => {
                     if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                      // Hay una nueva versión lista para usar
-                      if (confirm("Hay una nueva versión de la aplicación disponible. ¿Desea actualizar ahora?")) {
-                        // Enviar mensaje al Service Worker para que se active inmediatamente
+                      // هناك إصدار جديد جاهز للاستخدام
+                      if (confirm("هناك إصدار جديد من التطبيق متاح. هل ترغب في التحديث الآن؟")) {
+                        // إرسال رسالة إلى Service Worker لتنشيطه فوراً
                         newWorker.postMessage({ type: "SKIP_WAITING" });
-                        // Recargar la página para usar la nueva versión
+                        // إعادة تحميل الصفحة لاستخدام الإصدار الجديد
                         window.location.reload();
                       }
                     }
@@ -59,50 +63,51 @@ export default function RootLayout({
                 });
               },
               function(err) {
-                console.log("Service Worker registration failed: ", err);
+                console.log("فشل تسجيل Service Worker: ", err);
               }
             );
             
-            // Verificar el estado de la conexión
+            // التحقق من حالة الاتصال
             window.addEventListener("online", () => {
-              console.log("Conexión restablecida");
-              // Opcional: mostrar notificación al usuario
+              console.log("تم استعادة الاتصال");
+              document.getElementById("offline-indicator")?.classList.add("hidden");
+              // اختياري: عرض إشعار للمستخدم
             });
             
             window.addEventListener("offline", () => {
-              console.log("Sin conexión");
-              // Opcional: mostrar notificación al usuario
+              console.log("لا يوجد اتصال");
+              document.getElementById("offline-indicator")?.classList.remove("hidden");
+              // اختياري: عرض إشعار للمستخدم
             });
           });
         }
       }
       
-      // Verificar si localStorage está disponible
+      // التحقق مما إذا كان localStorage متاحًا
       function checkLocalStorage() {
         try {
           localStorage.setItem("test", "test");
           localStorage.removeItem("test");
-          console.log("localStorage está disponible");
+          console.log("localStorage متاح");
           return true;
         } catch (e) {
-          console.error("localStorage no está disponible:", e);
-          alert("Tu navegador no permite almacenamiento local. La aplicación no podrá guardar datos.");
+          console.error("localStorage غير متاح:", e);
+          alert("متصفحك لا يسمح بالتخزين المحلي. لن يتمكن التطبيق من حفظ البيانات.");
           return false;
         }
       }
       
-      // Ejecutar las funciones
+      // تنفيذ الدوال
       registerServiceWorker();
       checkLocalStorage();
       
-      // Verificar si hay datos guardados al cargar الصفحة
+      // التحقق مما إذا كانت هناك بيانات محفوظة عند تحميل الصفحة
       if (typeof localStorage !== "undefined") {
         const hasSchedules = localStorage.getItem("work-schedule-storage");
         const currentScheduleId = localStorage.getItem("current-schedule-id");
-        console.log("Stored data check - Has schedules:", !!hasSchedules, "Current schedule ID:", currentScheduleId);
+        console.log("فحص البيانات المخزنة - يوجد جداول:", !!hasSchedules, "معرف الجدول الحالي:", currentScheduleId);
       }
 
-      // أضف هذا الكود في نهاية الـ script في dangerouslySetInnerHTML
       // إضافة كود لتطبيق الألوان عند تحميل الصفحة
       function applyStoredColors() {
         try {
@@ -138,7 +143,7 @@ export default function RootLayout({
             }, 500);
           });
         } catch (e) {
-          console.error("Error applying stored colors:", e);
+          console.error("خطأ في تطبيق الألوان المخزنة:", e);
         }
       }
 
@@ -177,6 +182,40 @@ export default function RootLayout({
 
       // تنفيذ الدالة
       checkMonthChange();
+
+      // إضافة كود للتعامل مع وضع عدم الاتصال
+      function setupOfflineMode() {
+        // إنشاء مؤشر عدم الاتصال
+        const offlineIndicator = document.createElement('div');
+        offlineIndicator.id = 'offline-indicator';
+        offlineIndicator.className = 'fixed top-0 left-0 right-0 bg-red-500 text-white text-center py-2 z-50 hidden';
+        offlineIndicator.textContent = 'أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا.';
+        document.body.appendChild(offlineIndicator);
+        
+        // التحقق من حالة الاتصال الحالية
+        if (!navigator.onLine) {
+          offlineIndicator.classList.remove('hidden');
+        }
+        
+        // تخزين البيانات المحلية بشكل دوري
+        setInterval(function() {
+          if (typeof localStorage !== "undefined") {
+            // محاولة تخزين البيانات الحالية في IndexedDB أو localStorage
+            try {
+              const currentData = localStorage.getItem("work-schedule-storage");
+              if (currentData) {
+                localStorage.setItem("work-schedule-backup", currentData);
+                console.log("تم عمل نسخة احتياطية من البيانات");
+              }
+            } catch (e) {
+              console.error("فشل في عمل نسخة احتياطية:", e);
+            }
+          }
+        }, 60000); // كل دقيقة
+      }
+      
+      // تنفيذ إعداد وضع عدم الاتصال
+      setupOfflineMode();
     `,
           }}
         />
